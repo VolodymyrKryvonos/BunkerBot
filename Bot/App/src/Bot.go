@@ -38,9 +38,15 @@ func main() {
 			groupChat(update)
 		} else {
 			dialog(update)
+
 		}
+		bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
+			ChatID:    update.Message.Chat.ID,
+			MessageID: update.Message.MessageID,
+		})
 	}
 }
+
 
 func onRestart() {
 	db := DB.GetDataBase()
@@ -119,6 +125,10 @@ func setChatLocalization(update tgbotapi.Update) {
 		if err != nil {
 			loger.LogErr(err)
 		}
+		bot.DeleteMessage(tgbotapi.DeleteMessageConfig{
+			ChatID:    update.CallbackQuery.Message.Chat.ID,
+			MessageID: update.CallbackQuery.Message.MessageID,
+		})
 	}
 }
 
