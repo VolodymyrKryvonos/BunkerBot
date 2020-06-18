@@ -6,6 +6,7 @@ import (
 )
 
 type Game struct {
+	registrationMsgId  int
 	gameStage       int
 	catastropheId   uint8
 	numberOfPlayers int
@@ -18,6 +19,14 @@ const (
 	EN = "en"
 	RU = "ru"
 )
+
+func (g *Game)SetRegistrationMsgId(msg int)  {
+	g.registrationMsgId = msg
+}
+
+func (g Game)GetRegistrationMsgId() int  {
+	return g.registrationMsgId
+}
 
 func (g Game) GetNumberOfPlayers() int {
 	return g.numberOfPlayers
@@ -83,4 +92,14 @@ func (g Game) CountProfit() int {
 		}
 	}
 	return profit
+}
+
+func (g *Game) RemovePlayer(p int)  {
+	for i:= range g.players {
+		if g.players[i].userId==p{
+			g.players=append(g.players[:i],g.players[i+1:]...)
+			g.numberOfPlayers--
+			return
+		}
+	}
 }

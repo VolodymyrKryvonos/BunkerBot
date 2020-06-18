@@ -9,7 +9,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	_ "github.com/mattn/go-sqlite3"
 	"strings"
-	"time"
 )
 
 var bot, err = tgbotapi.NewBotAPI("1168689726:AAHvx5_NlWlRKQ-jJ6bB8GaVl7P480u1mZc")
@@ -47,7 +46,6 @@ func main() {
 	}
 }
 
-
 func onRestart() {
 	db := DB.GetDataBase()
 	query, err := db.Query("SELECT * FROM Localization")
@@ -72,38 +70,168 @@ func onRestart() {
 }
 
 func callbackQuery(update tgbotapi.Update) {
-	setChatLocalization(update)
+	game := games[update.CallbackQuery.Message.Chat.ID]
+	msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "")
+	switch update.CallbackQuery.Data {
+	case Game.EN:
+		setChatLocalization(update)
+		return
+	case Game.RU:
+		setChatLocalization(update)
+		return
+	case "join":
+		if game.GetGameStage() == 0 {
+			player := Game.Player{}
+			player.SetUserId(update.CallbackQuery.From.ID)
+			userName := update.CallbackQuery.From.FirstName + " " + update.CallbackQuery.From.LastName
+
+			player.SetUserName(userName)
+			players := game.GetPlayers()
+			for i := 0; i < len(players); i++ {
+				if player.GetUserId() == players[i].GetUserId() {
+					msgText := ""
+					switch game.GetLang() {
+					case Game.EN:
+						msgText = Text.ALREADY_REGISTRED_EN
+					case Game.RU:
+						msgText = Text.ALREADY_REGISTRED_RU
+					}
+					msg = tgbotapi.NewMessage(int64(update.CallbackQuery.From.ID), msgText)
+					_, err = bot.Send(msg)
+					if err != nil {
+						loger.LogErr(err)
+					}
+					return
+				}
+			}
+			game.AddPlayer(player)
+			msgText := ""
+			numberOfPlayers := ""
+			keyboard := tgbotapi.InlineKeyboardMarkup{}
+			row := make([]tgbotapi.InlineKeyboardButton, 2)
+			switch game.GetLang() {
+			case Game.RU:
+				numberOfPlayers = Text.NUMBER_OF_PLAYERS_RU
+				msgText = Text.REGISTRATION_RU + "\n\n" + "Зарегистрировались:\n"
+				row[0] = tgbotapi.NewInlineKeyboardButtonData(Text.JOIN_RU, "join")
+				row[1] = tgbotapi.NewInlineKeyboardButtonData(Text.LEAVE_RU, "leave")
+			case Game.EN:
+				numberOfPlayers = Text.NUMBER_OF_PLAYERS_EN
+				msgText = Text.REGISTRATION_EN + "\n\n" + "Registered:\n"
+				row[0] = tgbotapi.NewInlineKeyboardButtonData(Text.JOIN_EN, "join")
+				row[1] = tgbotapi.NewInlineKeyboardButtonData(Text.LEAVE_EN, "leave")
+			}
+			players = game.GetPlayers()
+			msgText += players[0].GetUserName()
+			for i := 1; i < game.GetNumberOfPlayers(); i++ {
+				msgText += ", " + players[i].GetUserName()
+			}
+			msgText += "\n\n" + numberOfPlayers + fmt.Sprintf("%d",game.GetNumberOfPlayers())
+			msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID,
+				update.CallbackQuery.Message.MessageID,
+				msgText)
+			keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
+			msg.ReplyMarkup = &keyboard
+			bot.Send(msg)
+		}
+	case "leave":
+		if game.GetGameStage() == 0 {
+			game.RemovePlayer(update.CallbackQuery.From.ID)
+			msgText := ""
+			numberOfPlayers := ""
+			keyboard := tgbotapi.InlineKeyboardMarkup{}
+			row := make([]tgbotapi.InlineKeyboardButton, 2)
+			switch game.GetLang() {
+			case Game.RU:
+				numberOfPlayers = Text.NUMBER_OF_PLAYERS_RU
+				msgText = Text.REGISTRATION_RU + "\n\n" + "Зарегистрировались:\n"
+				row[0] = tgbotapi.NewInlineKeyboardButtonData(Text.JOIN_RU, "join")
+				row[1] = tgbotapi.NewInlineKeyboardButtonData(Text.LEAVE_RU, "leave")
+			case Game.EN:
+				numberOfPlayers = Text.NUMBER_OF_PLAYERS_EN
+				msgText = Text.REGISTRATION_EN + "\n\n" + "Registered:\n"
+				row[0] = tgbotapi.NewInlineKeyboardButtonData(Text.JOIN_EN, "join")
+				row[1] = tgbotapi.NewInlineKeyboardButtonData(Text.LEAVE_EN, "leave")
+			}
+			players:= game.GetPlayers()
+			if  game.GetNumberOfPlayers()>0{
+				msgText += players[0].GetUserName()
+			}
+			for i := 1; i < game.GetNumberOfPlayers(); i++ {
+				msgText += ", " + players[i].GetUserName()
+			}
+			msgText += "\n\n" + numberOfPlayers + fmt.Sprintf("%d",game.GetNumberOfPlayers())
+			msg := tgbotapi.NewEditMessageText(update.CallbackQuery.Message.Chat.ID,
+				update.CallbackQuery.Message.MessageID,
+				msgText)
+			keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
+			msg.ReplyMarkup = &keyboard
+			bot.Send(msg)
+		}
+	case "done":
+		if !isBotAdmin(update.CallbackQuery.Message.Chat.ID) {
+			bot.AnswerCallbackQuery(tgbotapi.CallbackConfig{
+				CallbackQueryID: update.CallbackQuery.ID,
+				Text:            "Test",
+				ShowAlert:       true,
+				URL:             "",
+				CacheTime:       3,
+			})
+		} else {
+			_, err := bot.DeleteMessage(
+				tgbotapi.NewDeleteMessage(
+					update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Message.MessageID))
+			if err != nil {
+				loger.LogErr(err)
+			}
+		}
+	case "language":
+		if isFromAdministrator(update) {
+			keyboard := tgbotapi.InlineKeyboardMarkup{}
+			row := make([]tgbotapi.InlineKeyboardButton, 2)
+			row[0] = tgbotapi.NewInlineKeyboardButtonData("EN", "en")
+			row[1] = tgbotapi.NewInlineKeyboardButtonData("RU", "ru")
+			keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
+			msg.ReplyMarkup = keyboard
+			msg.Text = "Select language:"
+		}
+	}
+	bot.Send(msg)
 }
 
-func isFromAdministrator(msg *tgbotapi.Message) bool {
+func isFromAdministrator(update tgbotapi.Update) bool {
 
-	administrators, err := bot.GetChatAdministrators(tgbotapi.ChatConfig{
-		ChatID:             msg.Chat.ID,
+	var chatId int64
+	var userId int
+
+	if update.Message != nil {
+		chatId = update.Message.Chat.ID
+		userId = update.Message.From.ID
+	} else {
+		chatId = update.CallbackQuery.Message.Chat.ID
+		userId = update.CallbackQuery.From.ID
+	}
+
+	member, err := bot.GetChatMember(tgbotapi.ChatConfigWithUser{
+		ChatID:             chatId,
 		SuperGroupUsername: "",
+		UserID:             userId,
 	})
 
 	if err != nil {
 		loger.LogErr(err)
 	}
 
-	for i := range administrators {
-		if administrators[i].User.ID == msg.From.ID {
-			return true
-		}
-	}
-
-	return false
+	return member.IsAdministrator() || member.IsCreator()
 }
 
 func setChatLocalization(update tgbotapi.Update) {
-	if isFromAdministrator(update.CallbackQuery.Message) {
+	if isFromAdministrator(update) {
 		db := DB.GetDataBase()
 
-		t0 := time.Now()
 		_, err := db.Exec("INSERT or replace INTO Localization (Chat_id, lang) VALUES($1,$2)",
 			update.CallbackQuery.Message.Chat.ID, update.CallbackQuery.Data)
 
-		fmt.Println(t0.Sub(time.Now()))
 		if err != nil {
 			loger.LogErr(err)
 		}
@@ -164,7 +292,10 @@ func groupChat(update tgbotapi.Update) {
 	} else {
 		game = games[update.Message.Chat.ID]
 	}
-
+	if !isBotAdmin(update.Message.Chat.ID) {
+		settings(update)
+		return
+	}
 	switch command {
 	case Text.NEW_GAME:
 		if game.GetGameStage() < 0 {
@@ -183,6 +314,17 @@ func groupChat(update tgbotapi.Update) {
 			}
 			keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
 			msg.ReplyMarkup = keyboard
+			m,err:=bot.Send(msg)
+			if err != nil {
+				loger.LogErr(err)
+			}
+			game.SetRegistrationMsgId(m.MessageID)
+			bot.PinChatMessage(tgbotapi.PinChatMessageConfig{
+				ChatID:              update.Message.Chat.ID,
+				MessageID:           m.MessageID,
+				DisableNotification: false,
+			})
+			return
 		} else {
 			switch game.GetLang() {
 			case Game.RU:
@@ -192,28 +334,7 @@ func groupChat(update tgbotapi.Update) {
 			}
 		}
 	case Text.JOIN:
-		if game.GetGameStage() == 0 {
-			var player Game.Player
-			player.SetUserId(update.Message.From.ID)
-			userName := update.Message.From.UserName
-			if userName == "" {
-				userName = update.Message.From.FirstName + " " + update.Message.From.LastName
-			}
-			player.SetUserName(userName)
-			players := game.GetPlayers()
-			for i := 0; i < len(players); i++ {
-				if player.GetUserId() == players[i].GetUserId() {
-					msg = tgbotapi.NewMessage(int64(update.Message.From.ID), userName+" already in the game")
-					_, err = bot.Send(msg)
-					if err != nil {
-						loger.LogErr(err)
-					}
-					return
-				}
-			}
-			game.AddPlayer(player)
-			msg.Text = player.GetUserName() + " registered to the game"
-		}
+
 	case Text.LEAVE:
 		if game.GetGameStage() == 0 {
 
@@ -233,12 +354,13 @@ func groupChat(update tgbotapi.Update) {
 			for i := 0; i < game.GetNumberOfPlayers(); i++ {
 				sendProfile(players[i], game.GetLang())
 			}
+			game.SetGameStage(-1) //delete
 		}
 	case Text.RULES:
 		msg = tgbotapi.NewMessage(int64(update.Message.From.ID), "")
 		msg.Text = Text.TEST
 	case Text.LANG:
-		if isFromAdministrator(update.Message) {
+		if isFromAdministrator(update) {
 			keyboard := tgbotapi.InlineKeyboardMarkup{}
 			row := make([]tgbotapi.InlineKeyboardButton, 2)
 			row[0] = tgbotapi.NewInlineKeyboardButtonData("EN", "en")
@@ -311,4 +433,51 @@ func sendProfile(player Game.Player, lang string) {
 	if err != nil {
 		loger.LogErr(err)
 	}
+}
+
+func settings(update tgbotapi.Update) tgbotapi.Message {
+	botMember, err := bot.GetChatMember(tgbotapi.ChatConfigWithUser{
+		ChatID:             update.Message.Chat.ID,
+		SuperGroupUsername: "",
+		UserID:             bot.Self.ID,
+	})
+
+	if err != nil {
+		loger.LogErr(err)
+		return tgbotapi.Message{}
+	}
+
+	if !botMember.IsAdministrator() {
+		msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+		keyboard := tgbotapi.InlineKeyboardMarkup{}
+		row1 := make([]tgbotapi.InlineKeyboardButton, 1)
+		row2 := make([]tgbotapi.InlineKeyboardButton, 1)
+
+		row1[0] = tgbotapi.NewInlineKeyboardButtonData(Text.DONE, "done")
+		row2[0] = tgbotapi.NewInlineKeyboardButtonData(Text.LANGUAGE, "language")
+
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row1)
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row2)
+		msg.Text = Text.SETTINGS
+		msg.ReplyMarkup = keyboard
+		settingsMsg, err := bot.Send(msg)
+
+		if err != nil {
+			loger.LogErr(err)
+		}
+		return settingsMsg
+	}
+	return tgbotapi.Message{}
+}
+
+func isBotAdmin(chatId int64) bool {
+	botMember, err := bot.GetChatMember(tgbotapi.ChatConfigWithUser{
+		ChatID:             chatId,
+		SuperGroupUsername: "",
+		UserID:             bot.Self.ID,
+	})
+	if err != nil {
+		loger.LogErr(err)
+	}
+	return botMember.IsAdministrator()
 }
