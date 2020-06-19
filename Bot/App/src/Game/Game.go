@@ -6,38 +6,14 @@ import (
 )
 
 type Game struct {
-	registrationMsgId  int
 	gameStage       int
 	catastropheId   uint8
 	numberOfPlayers int
 	players         []Player
-	lang            string
-	configured      bool
-}
-
-const (
-	EN = "en"
-	RU = "ru"
-)
-
-func (g *Game)SetRegistrationMsgId(msg int)  {
-	g.registrationMsgId = msg
-}
-
-func (g Game)GetRegistrationMsgId() int  {
-	return g.registrationMsgId
 }
 
 func (g Game) GetNumberOfPlayers() int {
 	return g.numberOfPlayers
-}
-
-func (g *Game) SetLang(n string) {
-	g.lang = n
-}
-
-func (g *Game) GetLang() string {
-	return g.lang
 }
 
 func (g *Game) SetGameStage(n int) {
@@ -102,4 +78,10 @@ func (g *Game) RemovePlayer(p int)  {
 			return
 		}
 	}
+}
+
+func (g *Game) FinishGame()  {
+	g.players=nil
+	g.numberOfPlayers=0
+	g.gameStage=-1
 }

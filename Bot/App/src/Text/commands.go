@@ -6,7 +6,5 @@ const (
 	STOP     = "/stop"
 	VOTE     = "/vote"
 	RULES    = "/rules"
-	JOIN     = "/join"
-	LEAVE    = "/leave"
 	LANG     = "/set_lang"
 )

@@ -9,10 +9,10 @@ const (
 	CHANGED_LANG_EN = "The bot language has been changed to English \xF0\x9F\x87\xBA\xF0\x9F\x87\xB8"
 	CHANGED_LANG_RU = "Язык бота был изменен на русский \xF0\x9F\x87\xB7\xF0\x9F\x87\xBA"
 
-	PROFILE_EN = "Profession: %s\nHealth status: %s\nCharacter: %s\nBaggage: %s\n" +
-		"Biological characteristics: %s\nHobby: %s\nPhobia: %s\nPersonal skill: %s\n"
-	PROFILE_RU = "Профессия: %s \nСостояние здоровья: %s\nХарактер: %s\nБагаж: %s\n" +
-		"Биологические характеристики: %s \nХобби: %s \nФобия: %s \nЛичные навыки: %s"
+	PROFILE_EN = "\xF0\x9F\x91\xB7Profession: %s\n\xE2\x9D\xA4Health status: %s\n\xF0\x9F\x91\xA5Character: %s\n\xF0\x9F\x92\xBCBaggage: %s\n" +
+		"\xF0\x9F\x91\xABBiological characteristics: %s\n\xF0\x9F\x8F\x82Hobby: %s\n\xF0\x9F\x90\x8DPhobia: %s\n\xF0\x9F\x92\xAAPersonal skill: %s\n"
+	PROFILE_RU = "\xF0\x9F\x91\xB7Профессия: %s \n\xE2\x9D\xA4Состояние здоровья: %s\n\xF0\x9F\x91\xA5Характер: %s\n\xF0\x9F\x92\xBCБагаж: %s\n" +
+		"\xF0\x9F\x91\xABБиологические характеристики: %s \n\xF0\x9F\x8F\x82Хобби: %s \n\xF0\x9F\x90\x8DФобия: %s \n\xF0\x9F\x92\xAAЛичные навыки: %s"
 
 	REGISTRATION_EN = "Registration is open \xF0\x9F\x9A\xAA"
 	REGISTRATION_RU = "Ведётся набор в игру \xF0\x9F\x9A\xAA"
