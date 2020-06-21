@@ -21,7 +21,6 @@ func main() {
 	chats = make(map[int64]*Chat.Chat)
 	onRestart()
 	loger.LogErr(err)
-
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 	updates, err := bot.GetUpdatesChan(u)
@@ -35,7 +34,16 @@ func main() {
 			continue
 		}
 		if update.Message.Chat.IsSuperGroup() || update.Message.Chat.IsGroup() {
-			groupChat(update)
+			chat := chats[update.Message.Chat.ID]
+			if chat == nil {
+				groupChat(update)
+				continue
+			}
+			if chat.GetGame().GetGameStage() > 0 {
+				deleteNotPlayerMsg(update, chat)
+			} else {
+				groupChat(update)
+			}
 		} else {
 			dialog(update)
 
@@ -46,7 +54,19 @@ func main() {
 				MessageID: update.Message.MessageID,
 			})
 		}
+	}
+}
 
+func deleteNotPlayerMsg(update tgbotapi.Update, chat *Chat.Chat) {
+	players := chat.GetGame().GetPlayers()
+	for i := range players {
+		if players[i].GetUserId() == update.Message.From.ID {
+			return
+		}
+	}
+	_, err = bot.DeleteMessage(tgbotapi.NewDeleteMessage(update.Message.Chat.ID, update.Message.MessageID))
+	if err != nil {
+		loger.LogErr(err)
 	}
 }
 
@@ -234,6 +254,11 @@ func isFromAdministrator(update tgbotapi.Update) bool {
 
 func setChatLocalization(update tgbotapi.Update) {
 	if isFromAdministrator(update) {
+		_, err = bot.DeleteMessage(tgbotapi.NewDeleteMessage(update.CallbackQuery.Message.Chat.ID,
+			chats[update.CallbackQuery.Message.Chat.ID].GetLangMsgId()))
+		if err != nil {
+			loger.LogErr(err)
+		}
 		db := DB.GetDataBase()
 
 		_, err := db.Exec("INSERT or replace INTO Localization (Chat_id, lang) VALUES($1,$2)",
@@ -290,7 +315,7 @@ func groupChat(update tgbotapi.Update) {
 	command = strings.ReplaceAll(command, botUserName, "")
 	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
 	if chats[update.Message.Chat.ID] == nil {
-		chat := &Chat.Chat{}
+		chat = &Chat.Chat{}
 		chat.SetLang(Chat.EN)
 		game := &Game.Game{}
 		game.SetGameStage(-1)
@@ -332,13 +357,6 @@ func groupChat(update tgbotapi.Update) {
 				DisableNotification: false,
 			})
 			return
-		} else {
-			switch chat.GetLang() {
-			case Chat.RU:
-				msg.Text = Text.GAME_ALREADY_STARTED_RU
-			case Chat.EN:
-				msg.Text = Text.GAME_ALREADY_STARTED_EN
-			}
 		}
 
 	case Text.STOP:
@@ -346,34 +364,12 @@ func groupChat(update tgbotapi.Update) {
 		chat.GetGame().FinishGame()
 
 	case Text.START:
-
-		bot.DeleteMessage(tgbotapi.NewDeleteMessage(update.Message.Chat.ID, chat.GetRegistrationMsgId()))
-
-		if chat.GetGame().GetGameStage() == 0 {
-			err := chat.GetGame().NewGame()
-			if err != nil {
-				msg.Text = err.Error()
-				_, err = bot.Send(msg)
-				if err != nil {
-					loger.LogErr(err)
-				}
-				return
-			}
-			players := chat.GetGame().GetPlayers()
-			for i := 0; i < chat.GetGame().GetNumberOfPlayers(); i++ {
-				sendProfile(players[i], chat.GetLang())
-			}
-			chat.GetGame().FinishGame()
-		}
+		msg = startGame(update, chat)
 	case Text.RULES:
 		msg = tgbotapi.NewMessage(int64(update.Message.From.ID), "")
 		msg.Text = Text.TEST
 	case Text.LANG:
 		if isFromAdministrator(update) {
-			_, err = bot.DeleteMessage(tgbotapi.NewDeleteMessage(update.Message.Chat.ID, chat.GetLangMsgId()))
-			if err!=nil{
-				loger.LogErr(err)
-			}
 			keyboard := tgbotapi.InlineKeyboardMarkup{}
 			row := make([]tgbotapi.InlineKeyboardButton, 2)
 			row[0] = tgbotapi.NewInlineKeyboardButtonData("EN", "en")
@@ -395,6 +391,28 @@ func groupChat(update tgbotapi.Update) {
 	if err != nil {
 		loger.LogErr(err)
 	}
+}
+
+func startGame(update tgbotapi.Update, chat *Chat.Chat) tgbotapi.MessageConfig {
+	bot.DeleteMessage(tgbotapi.NewDeleteMessage(update.Message.Chat.ID, chat.GetRegistrationMsgId()))
+	msg := tgbotapi.NewMessage(update.Message.Chat.ID, "")
+	if chat.GetGame().GetGameStage() == 0 {
+		err := chat.GetGame().NewGame()
+		if err != nil {
+			msg.Text = err.Error()
+			_, err = bot.Send(msg)
+			if err != nil {
+				loger.LogErr(err)
+			}
+			return msg
+		}
+		players := chat.GetGame().GetPlayers()
+		for i := 0; i < chat.GetGame().GetNumberOfPlayers(); i++ {
+			sendProfile(players[i], chat.GetLang())
+		}
+		chat.GetGame().SetGameStage(1)
+	}
+	return msg
 }
 
 func sendProfile(player Game.Player, lang string) {
