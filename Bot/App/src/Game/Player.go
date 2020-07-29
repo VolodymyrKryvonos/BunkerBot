@@ -1,36 +1,138 @@
 package Game
 
-import "./DB"
+import (
+	"./DB"
+	"fmt"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
+	"math/rand"
+)
 
-type Player struct {
-	userId                     int
-	userName                   string
-	professionId               uint8
-	characterId                uint8
-	biologicalCharacteristicId uint8
-	healthId                   uint8
-	skillId                    uint8
-	baggageId                  uint8
-	actionId                   []uint8
-	hobbyId                    uint8
-	phobiasId                  uint8
-	alive                      bool
+type GameInfo struct {
+	age          int
+	sex          bool
+	professionId uint8
+	characterId  uint8
+	isCharOpen   bool
+	isBioOpen    bool
+	healthId     uint8
+	isHealOpen   bool
+	skillId      uint8
+	isSkillOpen  bool
+	baggageId    uint8
+	isBagOpen    bool
+	actionId     []uint8
+	hobbyId      uint8
+	isHobbyOpen  bool
+	phobiasId    uint8
+	isPhobiaOpen bool
+	alive        bool
+
 }
 
-func (p *Player) SetUserId(i int) {
-	p.userId = i
+type Player struct {
+	user         *tgbotapi.User
+	againstVotes int
+	msgId		 int
+	GameInfo
+}
+
+func (p Player) MsgId() int {
+	return p.msgId
+}
+
+func (p *Player) SetMsgId(msgId int) {
+	p.msgId = msgId
+}
+
+func (p Player) AgainstVotes() int {
+	return p.againstVotes
+}
+
+func (p *Player) NullifyVotes()  {
+	p.againstVotes=0
+}
+
+func (p *Player) IncrementAgainstVotes() {
+	p.againstVotes++
+}
+
+func (p *Player) IsPhobiaOpen() bool {
+	return p.isPhobiaOpen
+}
+
+func (p *Player) OpenPhobia(isPhobiaOpen bool) {
+	p.isPhobiaOpen = isPhobiaOpen
+}
+
+func (p *Player) IsHobbyOpen() bool {
+	return p.isHobbyOpen
+}
+
+func (p *Player) OpenHobby(isHobbyOpen bool) {
+	p.isHobbyOpen = isHobbyOpen
+}
+
+func (p *Player) IsBagOpen() bool {
+	return p.isBagOpen
+}
+
+func (p *Player) OpenBag(isBagOpen bool) {
+	p.isBagOpen = isBagOpen
+}
+
+func (p *Player) IsSkillOpen() bool {
+	return p.isSkillOpen
+}
+
+func (p *Player) OpenSkill(isSkillOpen bool) {
+	p.isSkillOpen = isSkillOpen
+}
+
+func (p *Player) IsHealthOpen() bool {
+	return p.isHealOpen
+}
+
+func (p *Player) OpenHealth(isHealOpen bool) {
+	p.isHealOpen = isHealOpen
+}
+
+func (p *Player) IsBioOpen() bool {
+	return p.isBioOpen
+}
+
+func (p *Player) OpenBio(isBioOpen bool) {
+	p.isBioOpen = isBioOpen
+}
+
+func (p *Player) IsCharOpen() bool {
+	return p.isCharOpen
+}
+
+func (p *Player) OpenChar(isCharOpen bool) {
+	p.isCharOpen = isCharOpen
+}
+
+func (p *Player) SetUser(user *tgbotapi.User) {
+	p.user = user
+}
+
+func (p Player) GetUser() *tgbotapi.User {
+	return p.user
 }
 
 func (p Player) GetUserId() int {
-	return p.userId
-}
-
-func (p *Player) SetUserName(i string) {
-	p.userName = i
+	return p.user.ID
 }
 
 func (p Player) GetUserName() string {
-	return p.userName
+	if p.user.UserName == "" {
+		return p.GetFullName()
+	}
+	return p.user.UserName
+}
+
+func (p Player) GetFullName() string {
+	return p.user.FirstName + " " + p.user.LastName
 }
 
 func (p Player) GetProfId() uint8 {
@@ -40,8 +142,25 @@ func (p Player) GetProfId() uint8 {
 func (p Player) GetCharacterId() uint8 {
 	return p.characterId
 }
-func (p Player) GetBioCharId() uint8 {
-	return p.biologicalCharacteristicId
+func (p Player) GetBioChar(lang string) string {
+	bio:=""
+	switch lang {
+	case "ru":
+		if p.sex {
+			bio="мужчина, "
+		}else {
+			bio="женщина, "
+		}
+		bio+= fmt.Sprintf("%d",p.age) + " лет"
+	case "en":
+		if p.sex {
+			bio="man, "
+		}else {
+			bio="woman, "
+		}
+		bio+=fmt.Sprintf("%d",p.age) + " years old"
+	}
+	return bio
 }
 func (p Player) GetHealthId() uint8 {
 	return p.healthId
@@ -76,18 +195,22 @@ func (player *Player) GenPlayer() {
 
 	db := DB.GetDataBase()
 	query, err := db.Query(`SELECT Profession_en.id, character_en.id, hobby_en.id, phobias_en.id, skills_en.id,
-							  	  health_en.id, biological_characteristics_en.id, baggage_en.id 
+							  	  health_en.id, baggage_en.id 
 								  FROM Profession_en, character_en, hobby_en, phobias_en, skills_en,
-								  health_en, biological_characteristics_en, baggage_en 
+								  health_en, baggage_en 
 								  ORDER BY random() limit 1`)
 	if err != nil {
 		panic(err)
 	}
 	if query.Next() {
 		query.Scan(&player.professionId, &player.characterId, &player.hobbyId,
-			&player.phobiasId, &player.skillId, &player.healthId,
-			&player.biologicalCharacteristicId, &player.baggageId)
+			&player.phobiasId, &player.skillId, &player.healthId, &player.baggageId)
 	}
+	player.age = int(rand.Uint32() % 90)
+	if player.age < 18 {
+		player.age += int(rand.Uint32() % 20)
+	}
+	player.sex = rand.Int()%2 == 0
 	query, err = db.Query("SELECT action_en.id FROM action_en ORDER BY RANDOM() limit 3")
 	if err != nil {
 		panic(err)
@@ -116,10 +239,8 @@ func (p Player) countProfit(catastropheId uint8) int {
 								  JOIN Skills_profit ON Skills_profit.catastrophe_id = Skills_profit.catastrophe_id
 								  WHERE Profession_profit.catastrophe_id = $1 and Profession_profit.profession_id = $2 and
  								  Health_profit.health_id = $3 and Character_profit.character_id = $4 and
-								  Baggage_profit.baggage_id = $5 and Biological_characteristics_profit.characteristics_id = $6 and
-								  Hobby_profit.hobby_id = $7 and Phobias_profit.phobia_id = $8 and Skills_profit.skills_id = $9`,
-		catastropheId, p.professionId, p.healthId, p.characterId, p.baggageId, p.biologicalCharacteristicId,
-		p.hobbyId, p.phobiasId, p.skillId)
+								  Baggage_profit.baggage_id = $5 and Hobby_profit.hobby_id = $6 and Phobias_profit.phobia_id = $7 and Skills_profit.skills_id = $8`,
+		catastropheId, p.professionId, p.healthId, p.characterId, p.baggageId, p.hobbyId, p.phobiasId, p.skillId)
 	if err != nil {
 		panic(err)
 	}

@@ -7,7 +7,7 @@ import (
 import "os"
 
 var (
-	file, _ = os.OpenFile("/home/kryvonos/go/BunkerBot/Bot/App/src/loger/log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
+	file, _ = os.OpenFile("/home/kryvonos/go/BunkerBot/BunkerBot/Bot/App/src/loger/log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
 	logFile = log.New(file, "", 0)
 )
 
