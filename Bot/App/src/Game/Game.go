@@ -12,7 +12,16 @@ type Game struct {
 	catastropheId        uint8
 	numberOfPlayers      int
 	numberOfAlivePlayers int
+	bunkerCap 			 int
 	players              []Player
+}
+
+func (g *Game) BunkerCap() int {
+	return g.bunkerCap
+}
+
+func (g *Game) SetBunkerCap(bunkerCap int) {
+	g.bunkerCap = bunkerCap
 }
 
 const (

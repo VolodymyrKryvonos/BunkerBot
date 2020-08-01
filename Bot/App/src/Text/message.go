@@ -63,4 +63,10 @@ const (
 
 	VOTE_AGAINST_YOURSELF_RU = "Вы не можете голосовать против себя \xE2\x9D\x97"
 	VOTE_AGAINST_YOURSELF_EN = "You cannot vote against yourself \xE2\x9D\x97"
+
+	SELECT_CHARACTERISTIC_RU="Выберите характеристику, которую хотите раскрыть"
+	SELECT_CHARACTERISTIC_EN="Select the characteristic you want to reveal"
+
+	CHARACTERISTIC_ALREADY_OPENED_RU="Вы уже вскрыли эту характеристику"
+	CHARACTERISTIC_ALREADY_OPENED_EN="You have already revealed this characteristic"
 )

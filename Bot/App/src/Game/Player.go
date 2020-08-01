@@ -36,6 +36,10 @@ type Player struct {
 	GameInfo
 }
 
+const (
+	NUMBER_OF_CHARACTERISTICS=8
+)
+
 func (p Player) MsgId() int {
 	return p.msgId
 }
@@ -60,56 +64,56 @@ func (p *Player) IsPhobiaOpen() bool {
 	return p.isPhobiaOpen
 }
 
-func (p *Player) OpenPhobia(isPhobiaOpen bool) {
-	p.isPhobiaOpen = isPhobiaOpen
+func (p *Player) OpenPhobia() {
+	p.isPhobiaOpen = true
 }
 
 func (p *Player) IsHobbyOpen() bool {
 	return p.isHobbyOpen
 }
 
-func (p *Player) OpenHobby(isHobbyOpen bool) {
-	p.isHobbyOpen = isHobbyOpen
+func (p *Player) OpenHobby() {
+	p.isHobbyOpen = true
 }
 
 func (p *Player) IsBagOpen() bool {
 	return p.isBagOpen
 }
 
-func (p *Player) OpenBag(isBagOpen bool) {
-	p.isBagOpen = isBagOpen
+func (p *Player) OpenBag() {
+	p.isBagOpen = true
 }
 
 func (p *Player) IsSkillOpen() bool {
 	return p.isSkillOpen
 }
 
-func (p *Player) OpenSkill(isSkillOpen bool) {
-	p.isSkillOpen = isSkillOpen
+func (p *Player) OpenSkill() {
+	p.isSkillOpen = true
 }
 
 func (p *Player) IsHealthOpen() bool {
 	return p.isHealOpen
 }
 
-func (p *Player) OpenHealth(isHealOpen bool) {
-	p.isHealOpen = isHealOpen
+func (p *Player) OpenHealth() {
+	p.isHealOpen = true
 }
 
 func (p *Player) IsBioOpen() bool {
 	return p.isBioOpen
 }
 
-func (p *Player) OpenBio(isBioOpen bool) {
-	p.isBioOpen = isBioOpen
+func (p *Player) OpenBio() {
+	p.isBioOpen = true
 }
 
 func (p *Player) IsCharOpen() bool {
 	return p.isCharOpen
 }
 
-func (p *Player) OpenChar(isCharOpen bool) {
-	p.isCharOpen = isCharOpen
+func (p *Player) OpenChar() {
+	p.isCharOpen = true
 }
 
 func (p *Player) SetUser(user *tgbotapi.User) {
