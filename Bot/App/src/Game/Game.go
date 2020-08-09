@@ -82,7 +82,7 @@ func (g *Game) NewGame() error {
 		g.players[i].GenPlayer()
 	}
 	db := DB.GetDataBase()
-	query, err := db.Query("SELECT id FROM Catastrophe_en ORDER BY random() limit 1")
+	query, err := db.Query("SELECT id FROM Catastrophe ORDER BY random() limit 1")
 	if err != nil {
 		return err
 	}

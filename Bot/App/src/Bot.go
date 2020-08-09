@@ -456,7 +456,7 @@ func formPlayerInfoMsg(chat *Chat.Chat) string {
 	var msgText string
 	db := DB.GetDataBase()
 	for i := 0; i < chat.GetGame().GetNumberOfPlayers(); i++ {
-		query, err := db.Query("SELECT profession_name FROM Profession_"+chat.GetLang()+" WHERE id=$1", chat.GetGame().GetPlayers()[i].GetProfId())
+		query, err := db.Query("SELECT profession_"+chat.GetLang()+" FROM Profession WHERE id=$1", chat.GetGame().GetPlayers()[i].GetProfId())
 		if err != nil {
 			loger.LogErr(err)
 		}
@@ -466,7 +466,7 @@ func formPlayerInfoMsg(chat *Chat.Chat) string {
 		query.Scan(&reader)
 		msgText += chat.GetGame().GetPlayers()[i].GetFullName() + ": " + reader
 		if chat.GetGame().GetPlayers()[i].IsCharOpen() {
-			query, err := db.Query("SELECT character FROM character_"+chat.GetLang()+" WHERE id=$1", chat.GetGame().GetPlayers()[i].GetCharacterId())
+			query, err := db.Query("SELECT character_"+chat.GetLang()+" FROM Character WHERE id=$1", chat.GetGame().GetPlayers()[i].GetCharacterId())
 			loger.LogErr(err)
 			query.Next()
 			query.Scan(&reader)
@@ -476,35 +476,35 @@ func formPlayerInfoMsg(chat *Chat.Chat) string {
 			msgText += ", " + chat.GetGame().GetPlayers()[i].GetBioChar(chat.GetLang())
 		}
 		if chat.GetGame().GetPlayers()[i].IsHealthOpen() {
-			query, err := db.Query("SELECT health FROM health_"+chat.GetLang()+" WHERE id=$1", chat.GetGame().GetPlayers()[i].GetHealthId())
+			query, err := db.Query("SELECT health_"+chat.GetLang()+" FROM Health WHERE id=$1", chat.GetGame().GetPlayers()[i].GetHealthId())
 			loger.LogErr(err)
 			query.Next()
 			query.Scan(&reader)
 			msgText += ", " + reader
 		}
 		if chat.GetGame().GetPlayers()[i].IsPhobiaOpen() {
-			query, err := db.Query("SELECT phobias FROM phobias_"+chat.GetLang()+" WHERE id=$1", chat.GetGame().GetPlayers()[i].GetPhobiasId())
+			query, err := db.Query("SELECT phobias_"+chat.GetLang()+" FROM Phobias WHERE id=$1", chat.GetGame().GetPlayers()[i].GetPhobiasId())
 			loger.LogErr(err)
 			query.Next()
 			query.Scan(&reader)
 			msgText += ", " + reader
 		}
 		if chat.GetGame().GetPlayers()[i].IsBagOpen() {
-			query, err := db.Query("SELECT baggage FROM baggage_"+chat.GetLang()+" WHERE id=$1", chat.GetGame().GetPlayers()[i].GetBaggageId())
+			query, err := db.Query("SELECT baggage_"+chat.GetLang()+" FROM Baggage WHERE id=$1", chat.GetGame().GetPlayers()[i].GetBaggageId())
 			loger.LogErr(err)
 			query.Next()
 			query.Scan(&reader)
 			msgText += ", " + reader
 		}
 		if chat.GetGame().GetPlayers()[i].IsHobbyOpen() {
-			query, err := db.Query("SELECT hobby FROM hobby_"+chat.GetLang()+" WHERE id=$1", chat.GetGame().GetPlayers()[i].GetHobbyId())
+			query, err := db.Query("SELECT hobby_"+chat.GetLang()+" FROM Hobby WHERE id=$1", chat.GetGame().GetPlayers()[i].GetHobbyId())
 			loger.LogErr(err)
 			query.Next()
 			query.Scan(&reader)
 			msgText += ", " + reader
 		}
 		if chat.GetGame().GetPlayers()[i].IsSkillOpen() {
-			query, err := db.Query("SELECT skills FROM skills_"+chat.GetLang()+" WHERE id=$1", chat.GetGame().GetPlayers()[i].GetSckillId())
+			query, err := db.Query("SELECT skills_"+chat.GetLang()+" FROM Skills WHERE id=$1", chat.GetGame().GetPlayers()[i].GetSckillId())
 			loger.LogErr(err)
 			query.Next()
 			query.Scan(&reader)
@@ -732,11 +732,13 @@ func startGame(update tgbotapi.Update, chat *Chat.Chat) tgbotapi.MessageConfig {
 		sendProfile(players[i], chat.GetLang())
 	}
 	db := DB.GetDataBase()
-	query, err := db.Query(fmt.Sprintf("SELECT catastrophe_name, description,destruction FROM Catastrophe_%s WHERE id = $1",
-		chat.GetLang()),
+	query, err := db.Query(strings.ReplaceAll("SELECT catastrophe_%s, description_%s,destruction FROM Catastrophe WHERE id = $1",
+		"%s",chat.GetLang()),
 		chat.GetGame().GetCatastropheId())
 	if err != nil {
 		loger.LogErr(err)
+		chat.GetGame().FinishGame()
+		return tgbotapi.MessageConfig{}
 	}
 
 	if query.Next() {
@@ -759,13 +761,13 @@ func startGame(update tgbotapi.Update, chat *Chat.Chat) tgbotapi.MessageConfig {
 
 		switch chat.GetLang() {
 		case Chat.RU:
-			query, err = db.Query("SELECT amenities FROM bunker_ru ORDER BY RANDOM() limit 1")
+			query, err = db.Query("SELECT amenities_ru FROM Bunker ORDER BY RANDOM() limit 1")
 			query.Next()
 			query.Scan(&amenities)
 			msg.Text = fmt.Sprintf(Text.DESCRIPTION_RU, catastrophe, description, destruction, alive)
 			msg.Text += fmt.Sprintf(Text.BUNKER_RU, capacity, area, time, amenities)
 		case Chat.EN:
-			query, err = db.Query("SELECT amenities FROM bunker_en ORDER BY RANDOM() limit 1")
+			query, err = db.Query("SELECT amenities_en FROM Bunker ORDER BY RANDOM() limit 1")
 			query.Next()
 			query.Scan(&amenities)
 			msg.Text = fmt.Sprintf(Text.DESCRIPTION_EN, catastrophe, description, destruction, alive)
@@ -933,12 +935,12 @@ func sendProfile(player Game.Player, lang string) {
 	userId := player.GetUserId()
 	var profile string
 	db := DB.GetDataBase()
-	s := strings.ReplaceAll(`SELECT Profession_%s.profession_name, health_%s.health, character_%s.character, 
-							   baggage_%s.baggage,hobby_%s.hobby, phobias_%s.phobias, skills_%s.skills
-							   FROM Profession_%s, health_%s,character_%s,baggage_%s,hobby_%s,phobias_%s,skills_%s
-							   WHERE Profession_%s.id = $1 and health_%s.id = $2 and
- 							   character_%s.id = $3 and baggage_%s.id = $4 and hobby_%s.id = $5 and
-							   phobias_%s.id = $6 and skills_%s.id = $7`, "%s", lang)
+	s := strings.ReplaceAll(`SELECT Profession.profession_%s, Health.health_%s, Character.character_%s, 
+								Baggage.baggage_%s,Hobby.hobby_%s, Phobias.phobias_%s, Skills.skills_%s
+								FROM Profession, Health,Character,Baggage,Hobby,Phobias,Skills
+								WHERE Profession.id = $1 and Health.id = $2 and
+								Character.id = $3 and Baggage.id = $4 and Hobby.id = $5 and
+								Phobias.id = $6 and Skills.id = $7`, "%s", lang)
 
 	query, err := db.Query(s, 1, 1, 1, 1, 1, 1, 1, 1)
 	if err != nil {
