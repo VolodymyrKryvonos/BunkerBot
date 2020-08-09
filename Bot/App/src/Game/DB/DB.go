@@ -10,7 +10,7 @@ var once sync.Once
 
 func GetDataBase() *sql.DB {
 	once.Do(func() {
-		DB, err := sql.Open("sqlite3", "/home/kryvonos/go/BunkerBot/Bot/App/src/Game/DB/bunkerBD")
+		DB, err := sql.Open("sqlite3", "/home/kryvonos/go/BunkerBot/BunkerBot/Bot/App/src/Game/DB/bunkerBD")
 		if err != nil {
 			panic("Can't open database " + err.Error())
 		}

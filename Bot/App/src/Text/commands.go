@@ -5,6 +5,7 @@ const (
 	START    = "/start"
 	STOP     = "/stop"
 	VOTE     = "/vote"
+	NEXT 	 = "/next"
 	RULES    = "/rules"
 	LANG     = "/set_lang"
 )
