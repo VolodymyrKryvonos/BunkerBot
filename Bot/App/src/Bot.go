@@ -125,90 +125,114 @@ func callbackDialogQuery(update tgbotapi.Update) {
 		return
 	}
 	chat := chats[vote.ChatId]
+	alertWindow := tgbotapi.CallbackConfig{}
+	alertWindow.ShowAlert = true
+	alertWindow.CacheTime = 1
+	alertWindow.CallbackQueryID = update.CallbackQuery.ID
 	switch chat.GetGame().GetGameStage() {
 	case Game.SELECTING_CHARACTERISTICS:
-		var player Game.Player
+		var player *Game.Player
 		player = chat.GetGame().FindByID(update.CallbackQuery.From.ID)
-		alertWindow := tgbotapi.CallbackConfig{}
 		switch chat.GetLang() {
 		case Chat.RU:
 			alertWindow.Text = Text.CHARACTERISTIC_ALREADY_OPENED_RU
 		case Chat.EN:
 			alertWindow.Text = Text.CHARACTERISTIC_ALREADY_OPENED_EN
 		}
-		alertWindow.CacheTime = 1
-		alertWindow.ShowAlert = true
-		alertWindow.CallbackQueryID = update.CallbackQuery.ID
+
 		switch vote.Vote {
 		case 0:
 			if player.IsHealthOpen() {
-				bot.AnswerCallbackQuery(alertWindow)
+				_, err := bot.AnswerCallbackQuery(alertWindow)
+				if err != nil {
+					loger.LogErr(err)
+
+				}
+
 				return
 			}
 			player.OpenHealth()
-			fallthrough
+
 		case 1:
 			if player.IsCharOpen() {
-				bot.AnswerCallbackQuery(alertWindow)
+				_, err := bot.AnswerCallbackQuery(alertWindow)
+				if err != nil {
+					loger.LogErr(err)
+				}
 				return
 			}
 			player.OpenChar()
-			fallthrough
+
 		case 2:
 			if player.IsBagOpen() {
-				bot.AnswerCallbackQuery(alertWindow)
+				_, err := bot.AnswerCallbackQuery(alertWindow)
+				if err != nil {
+					loger.LogErr(err)
+				}
 				return
 			}
 			player.OpenBag()
-			fallthrough
+
 		case 3:
 			if player.IsBioOpen() {
-				bot.AnswerCallbackQuery(alertWindow)
+				_, err := bot.AnswerCallbackQuery(alertWindow)
+				if err != nil {
+					loger.LogErr(err)
+				}
 				return
 			}
 			player.OpenBio()
-			fallthrough
+
 		case 4:
 			if player.IsHobbyOpen() {
-				bot.AnswerCallbackQuery(alertWindow)
+				_, err := bot.AnswerCallbackQuery(alertWindow)
+				if err != nil {
+					loger.LogErr(err)
+				}
 				return
 			}
 			player.OpenHobby()
-			fallthrough
+
 		case 5:
 			if player.IsPhobiaOpen() {
-				bot.AnswerCallbackQuery(alertWindow)
+				_, err := bot.AnswerCallbackQuery(alertWindow)
+				if err != nil {
+					loger.LogErr(err)
+				}
 				return
 			}
 			player.OpenPhobia()
-			fallthrough
+
 		case 6:
 			if player.IsSkillOpen() {
-				bot.AnswerCallbackQuery(alertWindow)
+				_, err := bot.AnswerCallbackQuery(alertWindow)
+				if err != nil {
+					loger.LogErr(err)
+				}
 				return
 			}
 			player.OpenSkill()
-			fallthrough
-		default:
-			delMsg := tgbotapi.NewDeleteMessage(update.CallbackQuery.Message.Chat.ID,
-				update.CallbackQuery.Message.MessageID)
-			bot.DeleteMessage(delMsg)
+
 		}
+		delMsg := tgbotapi.NewDeleteMessage(update.CallbackQuery.Message.Chat.ID,
+			update.CallbackQuery.Message.MessageID)
+		bot.DeleteMessage(delMsg)
 	case Game.VOTING:
-		if chat.GetGame().GetPlayers()[vote.Vote].GetUserId() != update.CallbackQuery.From.ID {
-			chat.GetGame().GetPlayers()[vote.Vote].IncrementAgainstVotes()
+		alertWindow.CallbackQueryID = update.CallbackQuery.ID
+		if chat.GetGame().PlayersToKick[vote.Vote].GetUserId() != update.CallbackQuery.From.ID {
+			chat.GetGame().PlayersToKick[vote.Vote].IncrementAgainstVotes()
 			msg := tgbotapi.NewDeleteMessage(update.CallbackQuery.Message.Chat.ID,
 				chat.GetGame().FindByID(update.CallbackQuery.From.ID).MsgId())
 			bot.DeleteMessage(msg)
 		} else {
-			msg := tgbotapi.NewMessage(update.CallbackQuery.Message.Chat.ID, "")
+
 			switch chat.GetLang() {
 			case Chat.EN:
-				msg.Text = Text.VOTE_AGAINST_YOURSELF_EN
+				alertWindow.Text = Text.VOTE_AGAINST_YOURSELF_EN
 			case Chat.RU:
-				msg.Text = Text.VOTE_AGAINST_YOURSELF_RU
+				alertWindow.Text = Text.VOTE_AGAINST_YOURSELF_RU
 			}
-			bot.Send(msg)
+			bot.AnswerCallbackQuery(alertWindow)
 		}
 	case Game.DISCUSSION:
 
@@ -433,7 +457,9 @@ func formPlayerInfoMsg(chat *Chat.Chat) string {
 	db := DB.GetDataBase()
 	for i := 0; i < chat.GetGame().GetNumberOfPlayers(); i++ {
 		query, err := db.Query("SELECT profession_name FROM Profession_"+chat.GetLang()+" WHERE id=$1", chat.GetGame().GetPlayers()[i].GetProfId())
-		loger.LogErr(err)
+		if err != nil {
+			loger.LogErr(err)
+		}
 		query.Next()
 		var reader string
 
@@ -604,10 +630,6 @@ func groupChat(update tgbotapi.Update) {
 	}
 }
 
-func nextStage() {
-
-}
-
 func formCharacteristicMsg(chatId int64, chat *Chat.Chat) tgbotapi.MessageConfig {
 	msg := tgbotapi.NewMessage(chatId, "")
 	keyboard := tgbotapi.InlineKeyboardMarkup{}
@@ -654,10 +676,24 @@ func formCharacteristicMsg(chatId int64, chat *Chat.Chat) tgbotapi.MessageConfig
 }
 
 func formVotingMsg(chatId int64, chat *Chat.Chat) tgbotapi.MessageConfig {
+
+	if chat.GetGame().PlayersToKick == nil {
+
+		chat.GetGame().PlayersToKick = make([]*Game.Player, chat.GetGame().NumberOfAlivePlayers())
+		index := 0
+		for i := 0; i < chat.GetGame().GetNumberOfPlayers(); i++ {
+			if chat.GetGame().GetPlayers()[i].IsAlive() {
+				chat.GetGame().PlayersToKick[index] = &chat.GetGame().GetPlayers()[i]
+				index++
+			}
+		}
+	}
+
 	msg := tgbotapi.NewMessage(chatId, "")
 	keyboard := tgbotapi.InlineKeyboardMarkup{}
-	buttons := make([]tgbotapi.InlineKeyboardButton, chat.GetGame().NumberOfAlivePlayers())
-	for i := 0; i < chat.GetGame().NumberOfAlivePlayers(); i++ {
+	buttons := make([]tgbotapi.InlineKeyboardButton, len(chat.GetGame().PlayersToKick))
+	for i, val := range chat.GetGame().PlayersToKick {
+
 		var vote jsonVote
 		vote.ChatId = msg.ChatID
 		vote.Vote = i
@@ -667,8 +703,9 @@ func formVotingMsg(chatId int64, chat *Chat.Chat) tgbotapi.MessageConfig {
 			return tgbotapi.MessageConfig{}
 		}
 		buttons[i] = tgbotapi.NewInlineKeyboardButtonData(strconv.Itoa(i+1)+". "+
-			chat.GetGame().GetPlayers()[i].GetFullName(), string(voteParsed))
+			val.GetFullName(), string(voteParsed))
 		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, buttons[i:i+1])
+
 	}
 	msg.ReplyMarkup = keyboard
 	msg.Text = "Test"
@@ -719,8 +756,6 @@ func startGame(update tgbotapi.Update, chat *Chat.Chat) tgbotapi.MessageConfig {
 		query.Scan(&catastrophe, &description, &destruction)
 		alive = (rand.Int()%(15-destruction) + 1) * 5
 		destruction = (rand.Int()%(10+destruction) + 1) * 5
-		chat.GetGame().SetAlive(alive)
-		chat.GetGame().SetDestruction(destruction)
 
 		switch chat.GetLang() {
 		case Chat.RU:
@@ -749,7 +784,6 @@ func startGame(update tgbotapi.Update, chat *Chat.Chat) tgbotapi.MessageConfig {
 }
 
 func GameLogic(chatId int64, chat *Chat.Chat) {
-
 	closeCharacteristics := Game.NUMBER_OF_CHARACTERISTICS - 1
 	game := chat.GetGame()
 	for {
@@ -762,12 +796,14 @@ func GameLogic(chatId int64, chat *Chat.Chat) {
 			switch game.GetGameStage() {
 			case Game.SELECTING_CHARACTERISTICS:
 				selectingCharacteristics(chat, chatId)
+				closeCharacteristics--
 			case Game.DISCUSSION:
 				discussion(chat, chatId)
 			}
+		} else {
+			break
 		}
 	}
-
 }
 
 func discussion(chat *Chat.Chat, chatId int64) {
@@ -778,38 +814,119 @@ func discussion(chat *Chat.Chat, chatId int64) {
 		loger.LogErr(err)
 	}
 
-	timer := time.NewTimer(60 * time.Second)
+	timer := time.NewTimer(10 * time.Second)
 	select {
 	case <-timer.C:
 	}
-
-	voting(chat,chatId)
+	chat.GetGame().SetGameStage(Game.VOTING)
+	voting(chat, chatId)
 }
 
 func voting(chat *Chat.Chat, chatId int64) {
-
+	msg := formVotingMsg(chatId, chat)
+	for i := 0; i < chat.GetGame().GetNumberOfPlayers(); i++ {
+		if chat.GetGame().GetPlayers()[i].IsAlive() {
+			msg.ChatID = int64(chat.GetGame().GetPlayers()[i].GetUser().ID)
+			msgReply, err := bot.Send(msg)
+			loger.LogErr(err)
+			chat.GetGame().GetPlayers()[i].SetMsgId(msgReply.MessageID)
+		}
+	}
+	timer := time.NewTimer(10 * time.Second)
+	select {
+	case <-timer.C:
+		for i := 0; i < chat.GetGame().GetNumberOfPlayers(); i++ {
+			if chat.GetGame().GetPlayers()[i].IsAlive() {
+				_, err := bot.DeleteMessage(tgbotapi.NewDeleteMessage(int64(chat.GetGame().GetPlayers()[i].GetUser().ID), chat.GetGame().GetPlayers()[i].MsgId()))
+				if err == nil {
+					chat.GetGame().GetPlayers()[i].IncrementAgainstVotes()
+				}
+			}
+		}
+		chat.GetGame().Kick()
+		if len(chat.GetGame().PlayersToKick) == 1 {
+			msg.ChatID = chatId
+			chat.GetGame().PlayersToKick[0].Kill()
+			chat.GetGame().SetNumberOfAlivePlayers(chat.GetGame().NumberOfAlivePlayers() - 1)
+			switch chat.GetLang() {
+			case Chat.EN:
+				msg.Text = fmt.Sprintf(Text.KICK_EN, chat.GetGame().PlayersToKick[0].GetFullName())
+			case Chat.RU:
+				msg.Text = fmt.Sprintf(Text.KICK_RU, chat.GetGame().PlayersToKick[0].GetFullName())
+			}
+			msg.ReplyMarkup = nil
+			_, err := bot.Send(msg)
+			loger.LogErr(err)
+			chat.GetGame().PlayersToKick = nil
+		} else {
+			msg.ChatID = chatId
+			for _, val := range chat.GetGame().PlayersToKick {
+				msg.Text += val.GetFullName() + ", "
+			}
+			switch chat.GetLang() {
+			case Chat.RU:
+				msg.Text += Text.MORE_THAN_ONE_RU
+			case Chat.EN:
+				msg.Text += Text.MORE_THAN_ONE_EN
+			}
+			_, err := bot.Send(msg)
+			loger.LogErr(err)
+			timer = time.NewTimer(10 * time.Second)
+			select {
+			case <-timer.C:
+				for i := 0; i < chat.GetGame().GetNumberOfPlayers(); i++ {
+					if chat.GetGame().GetPlayers()[i].IsAlive() {
+						msg.ChatID = int64(chat.GetGame().GetPlayers()[i].GetUser().ID)
+						msgReply, err := bot.Send(msg)
+						loger.LogErr(err)
+						chat.GetGame().GetPlayers()[i].SetMsgId(msgReply.MessageID)
+					}
+				}
+				_, err := bot.Send(msg)
+				loger.LogErr(err)
+			}
+		}
+	}
 }
 
 func selectingCharacteristics(chat *Chat.Chat, chatId int64) {
 	msg := formCharacteristicMsg(chatId, chat)
-	for i := 0; i < chat.GetGame().NumberOfAlivePlayers(); i++ {
-		msg.ChatID = int64(chat.GetGame().GetPlayers()[i].GetUser().ID)
-		msgReply, err := bot.Send(msg)
-		loger.LogErr(err)
-		chat.GetGame().GetPlayers()[i].SetMsgId(msgReply.MessageID)
+	players := chat.GetGame().GetPlayers()
+	for i := 0; i < chat.GetGame().GetNumberOfPlayers(); i++ {
+		if players[i].IsAlive() {
+			msg.ChatID = int64(players[i].GetUser().ID)
+			msgReply, err := bot.Send(msg)
+			loger.LogErr(err)
+			players[i].SetMsgId(msgReply.MessageID)
+		}
 	}
-
-	timer := time.NewTimer(60 * time.Second)
+	timer := time.NewTimer(5 * time.Second)
 	select {
 	case <-timer.C:
-		for i := 0; i < chat.GetGame().NumberOfAlivePlayers(); i++ {
-			_, err := bot.DeleteMessage(tgbotapi.NewDeleteMessage(int64(chat.GetGame().GetPlayers()[i].GetUser().ID), chat.GetGame().GetPlayers()[i].MsgId()))
-			if err == nil {
-				fmt.Println("Random")
+		for i := 0; i < chat.GetGame().GetNumberOfPlayers(); i++ {
+			if players[i].IsAlive() {
+				_, err := bot.DeleteMessage(tgbotapi.NewDeleteMessage(int64(players[i].GetUser().ID), players[i].MsgId()))
+				if err == nil {
+					switch {
+					case !players[i].IsHealthOpen():
+						players[i].OpenHealth()
+					case !players[i].IsPhobiaOpen():
+						players[i].OpenPhobia()
+					case !players[i].IsBioOpen():
+						players[i].OpenBio()
+					case !players[i].IsBagOpen():
+						players[i].OpenBag()
+					case !players[i].IsHobbyOpen():
+						players[i].OpenHobby()
+					case !players[i].IsSkillOpen():
+						players[i].OpenSkill()
+					case !players[i].IsCharOpen():
+						players[i].OpenChar()
+					}
+				}
 			}
 		}
 	}
-
 }
 
 func sendProfile(player Game.Player, lang string) {

@@ -3,9 +3,6 @@ package Text
 const (
 	TEST = "test"
 
-	GAME_ALREADY_STARTED_EN = "Recruitment for the game has already begun \xE2\x9D\x97\xE2\x9D\x97\xE2\x9D\x97"
-	GAME_ALREADY_STARTED_RU = "Набор на игру уже начался \xE2\x9D\x97\xE2\x9D\x97\xE2\x9D\x97"
-
 	CHANGED_LANG_EN = "The bot language has been changed to English \xF0\x9F\x87\xBA\xF0\x9F\x87\xB8"
 	CHANGED_LANG_RU = "Язык бота был изменен на русский \xF0\x9F\x87\xB7\xF0\x9F\x87\xBA"
 
@@ -35,7 +32,6 @@ const (
 	SKILL_EN = "\xF0\x9F\x92\xAAPersonal skill"
 	SKILL_RU = "\xF0\x9F\x92\xAAЛичные навыки"
 
-
 	REGISTRATION_EN = "Registration is open \xF0\x9F\x9A\xAA"
 	REGISTRATION_RU = "Ведётся набор в игру \xF0\x9F\x9A\xAA"
 
@@ -64,9 +60,15 @@ const (
 	VOTE_AGAINST_YOURSELF_RU = "Вы не можете голосовать против себя \xE2\x9D\x97"
 	VOTE_AGAINST_YOURSELF_EN = "You cannot vote against yourself \xE2\x9D\x97"
 
-	SELECT_CHARACTERISTIC_RU="Выберите характеристику, которую хотите раскрыть"
-	SELECT_CHARACTERISTIC_EN="Select the characteristic you want to reveal"
+	SELECT_CHARACTERISTIC_RU = "Выберите характеристику, которую хотите раскрыть"
+	SELECT_CHARACTERISTIC_EN = "Select the characteristic you want to reveal"
 
-	CHARACTERISTIC_ALREADY_OPENED_RU="Вы уже вскрыли эту характеристику"
-	CHARACTERISTIC_ALREADY_OPENED_EN="You have already revealed this characteristic"
+	CHARACTERISTIC_ALREADY_OPENED_RU = "Вы уже вскрыли эту характеристику"
+	CHARACTERISTIC_ALREADY_OPENED_EN = "You have already revealed this characteristic"
+
+	KICK_RU = "Вы решили оставить %s за стенами бункера"
+	KICK_EN = "You decided to leave %s outside the walls of the bunker"
+
+	MORE_THAN_ONE_RU = "имеют наибольшее количество голосов"
+	MORE_THAN_ONE_EN = "have the largest number of votes"
 )

@@ -6,14 +6,13 @@ import (
 )
 
 type Game struct {
-	alive                int
-	destruction          int
 	gameStage            int
 	catastropheId        uint8
 	numberOfPlayers      int
 	numberOfAlivePlayers int
-	bunkerCap 			 int
+	bunkerCap            int
 	players              []Player
+	PlayersToKick        []*Player
 }
 
 func (g *Game) BunkerCap() int {
@@ -25,11 +24,11 @@ func (g *Game) SetBunkerCap(bunkerCap int) {
 }
 
 const (
-	GAME_IS_OVER=-1
-	REGISTRATION = 0
-	SELECTING_CHARACTERISTICS=1
-	VOTING = 2
-	DISCUSSION = 3
+	GAME_IS_OVER              = -1
+	REGISTRATION              = 0
+	SELECTING_CHARACTERISTICS = 1
+	VOTING                    = 2
+	DISCUSSION                = 3
 )
 
 func (g *Game) NumberOfAlivePlayers() int {
@@ -38,22 +37,6 @@ func (g *Game) NumberOfAlivePlayers() int {
 
 func (g *Game) SetNumberOfAlivePlayers(numberOfAlivePlayers int) {
 	g.numberOfAlivePlayers = numberOfAlivePlayers
-}
-
-func (g Game) GetAlive() int {
-	return g.alive
-}
-
-func (g *Game) SetAlive(n int) {
-	g.alive = n
-}
-
-func (g *Game) SetDestruction(n int) {
-	g.destruction = n
-}
-
-func (g Game) GetDestruction() int {
-	return g.destruction
 }
 
 func (g Game) GetCatastropheId() uint8 {
@@ -121,13 +104,13 @@ func (g Game) CountProfit() int {
 	return profit
 }
 
-func (g Game) FindByID(id int) Player {
+func (g Game) FindByID(id int) *Player {
 	for i := 0; i < g.numberOfPlayers; i++ {
 		if g.players[i].user.ID == id {
-			return g.players[i]
+			return &g.players[i]
 		}
 	}
-	return Player{}
+	return &Player{}
 }
 
 func (g *Game) RemovePlayer(p int) {
@@ -138,6 +121,23 @@ func (g *Game) RemovePlayer(p int) {
 			return
 		}
 	}
+}
+
+func (g *Game) Kick() {
+	playersToKick := make([]*Player, 0, g.numberOfAlivePlayers)
+	maxVotes := 0
+	for i := 0; i < len(g.PlayersToKick); i++ {
+		if g.players[i].againstVotes > maxVotes {
+			maxVotes = g.players[i].againstVotes
+		}
+	}
+
+	for i := 0; i < len(g.PlayersToKick); i++ {
+		if g.players[i].againstVotes == maxVotes {
+			playersToKick = append(playersToKick, &g.players[i])
+		}
+	}
+	g.PlayersToKick = playersToKick
 }
 
 func (g *Game) FinishGame() {

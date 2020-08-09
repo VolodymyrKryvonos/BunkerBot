@@ -26,18 +26,17 @@ type GameInfo struct {
 	phobiasId    uint8
 	isPhobiaOpen bool
 	alive        bool
-
 }
 
 type Player struct {
 	user         *tgbotapi.User
 	againstVotes int
-	msgId		 int
+	msgId        int
 	GameInfo
 }
 
 const (
-	NUMBER_OF_CHARACTERISTICS=8
+	NUMBER_OF_CHARACTERISTICS = 8
 )
 
 func (p Player) MsgId() int {
@@ -52,8 +51,8 @@ func (p Player) AgainstVotes() int {
 	return p.againstVotes
 }
 
-func (p *Player) NullifyVotes()  {
-	p.againstVotes=0
+func (p *Player) NullifyVotes() {
+	p.againstVotes = 0
 }
 
 func (p *Player) IncrementAgainstVotes() {
@@ -147,22 +146,22 @@ func (p Player) GetCharacterId() uint8 {
 	return p.characterId
 }
 func (p Player) GetBioChar(lang string) string {
-	bio:=""
+	bio := ""
 	switch lang {
 	case "ru":
 		if p.sex {
-			bio="мужчина, "
-		}else {
-			bio="женщина, "
+			bio = "мужчина, "
+		} else {
+			bio = "женщина, "
 		}
-		bio+= fmt.Sprintf("%d",p.age) + " лет"
+		bio += fmt.Sprintf("%d", p.age) + " лет"
 	case "en":
 		if p.sex {
-			bio="man, "
-		}else {
-			bio="woman, "
+			bio = "man, "
+		} else {
+			bio = "woman, "
 		}
-		bio+=fmt.Sprintf("%d",p.age) + " years old"
+		bio += fmt.Sprintf("%d", p.age) + " years old"
 	}
 	return bio
 }
@@ -188,6 +187,7 @@ func (p Player) IsAlive() bool {
 }
 
 func (p *Player) Kill() {
+	p.againstVotes = 0
 	p.alive = false
 }
 
