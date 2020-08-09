@@ -198,10 +198,10 @@ func (p Player) GetActionIds() []uint8 {
 func (player *Player) GenPlayer() {
 
 	db := DB.GetDataBase()
-	query, err := db.Query(`SELECT Profession_en.id, character_en.id, hobby_en.id, phobias_en.id, skills_en.id,
-							  	  health_en.id, baggage_en.id 
-								  FROM Profession_en, character_en, hobby_en, phobias_en, skills_en,
-								  health_en, baggage_en 
+	query, err := db.Query(`SELECT Profession.id, Character.id, Hobby.id, Phobias.id, Skills.id,
+							  	  Health.id, Baggage.id 
+								  FROM Profession, Character, Hobby, Phobias, Skills,
+								  Health, Baggage 
 								  ORDER BY random() limit 1`)
 	if err != nil {
 		panic(err)
@@ -215,7 +215,7 @@ func (player *Player) GenPlayer() {
 		player.age += int(rand.Uint32() % 20)
 	}
 	player.sex = rand.Int()%2 == 0
-	query, err = db.Query("SELECT action_en.id FROM action_en ORDER BY RANDOM() limit 3")
+	query, err = db.Query("SELECT Action.id FROM Action ORDER BY RANDOM() limit 2")
 	if err != nil {
 		panic(err)
 	}
@@ -233,18 +233,16 @@ func (p Player) countProfit(catastropheId uint8) int {
 	profit = 0
 	db := DB.GetDataBase()
 	query, err := db.Query(`SELECT Profession_profit.profit, Health_profit.profit, Character_profit.profit, Baggage_profit.profit,
-								  Biological_characteristics_profit.profit, Hobby_profit.profit, Phobias_profit.profit, Skills_profit.profit
-								  FROM Profession_profit JOIN Health_profit ON Profession_profit.catastrophe_id=Health_profit.catastrophe_id  
-								  JOIN  Character_profit ON Character_profit.catastrophe_id = Profession_profit.catastrophe_id
-								  JOIN Baggage_profit ON Baggage_profit.catastrophe_id = Profession_profit.catastrophe_id
-								  JOIN Biological_characteristics_profit ON Biological_characteristics_profit.catastrophe_id = Profession_profit.catastrophe_id
-								  JOIN Hobby_profit ON Hobby_profit.catastrophe_id = Profession_profit.catastrophe_id
-								  JOIN Phobias_profit ON Phobias_profit.catastrophe_id = Phobias_profit.catastrophe_id
-								  JOIN Skills_profit ON Skills_profit.catastrophe_id = Skills_profit.catastrophe_id
-								  WHERE Profession_profit.catastrophe_id = $1 and Profession_profit.profession_id = $2 and
- 								  Health_profit.health_id = $3 and Character_profit.character_id = $4 and
-								  Baggage_profit.baggage_id = $5 and Hobby_profit.hobby_id = $6 and Phobias_profit.phobia_id = $7 and Skills_profit.skills_id = $8`,
-		catastropheId, p.professionId, p.healthId, p.characterId, p.baggageId, p.hobbyId, p.phobiasId, p.skillId)
+ Hobby_profit.profit, Phobias_profit.profit, Skills_profit.profit
+FROM Profession_profit JOIN Health_profit ON Profession_profit.catastrophe_id=Health_profit.catastrophe_id  
+JOIN  Character_profit ON Character_profit.catastrophe_id = Profession_profit.catastrophe_id
+JOIN Baggage_profit ON Baggage_profit.catastrophe_id = Profession_profit.catastrophe_id
+JOIN Hobby_profit ON Hobby_profit.catastrophe_id = Profession_profit.catastrophe_id
+JOIN Phobias_profit ON Phobias_profit.catastrophe_id = Phobias_profit.catastrophe_id
+JOIN Skills_profit ON Skills_profit.catastrophe_id = Skills_profit.catastrophe_id
+WHERE Profession_profit.catastrophe_id = $1 and Profession_profit.profession_id = $2 and
+Health_profit.health_id = $3 and Character_profit.character_id = $4 and
+Baggage_profit.baggage_id = $5 and Hobby_profit.hobby_id = $6 and Phobias_profit.phobia_id = $7 and Skills_profit.skill_id = &8`,catastropheId, p.professionId, p.healthId, p.characterId, p.baggageId, p.hobbyId, p.phobiasId, p.skillId)
 	if err != nil {
 		panic(err)
 	}
