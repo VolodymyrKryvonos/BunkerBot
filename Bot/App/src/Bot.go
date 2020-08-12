@@ -456,7 +456,8 @@ func formPlayerInfoMsg(chat *Chat.Chat) string {
 	var msgText string
 	db := DB.GetDataBase()
 	for i := 0; i < chat.GetGame().GetNumberOfPlayers(); i++ {
-		query, err := db.Query("SELECT profession_"+chat.GetLang()+" FROM Profession WHERE id=$1", chat.GetGame().GetPlayers()[i].GetProfId())
+		query, err := db.Query("SELECT Profession_"+chat.GetLang()+" FROM Profession WHERE id=$1",
+			chat.GetGame().GetPlayers()[i].GetProfId())
 		if err != nil {
 			loger.LogErr(err)
 		}
@@ -708,7 +709,12 @@ func formVotingMsg(chatId int64, chat *Chat.Chat) tgbotapi.MessageConfig {
 
 	}
 	msg.ReplyMarkup = keyboard
-	msg.Text = "Test"
+	switch chat.GetLang() {
+	case Chat.RU:
+		msg.Text = Text.VOTE_AGAINST_RU
+	case Chat.EN:
+		msg.Text = Text.VOTE_AGAINST_EN
+	}
 	return msg
 }
 
@@ -733,7 +739,7 @@ func startGame(update tgbotapi.Update, chat *Chat.Chat) tgbotapi.MessageConfig {
 	}
 	db := DB.GetDataBase()
 	query, err := db.Query(strings.ReplaceAll("SELECT catastrophe_%s, description_%s,destruction FROM Catastrophe WHERE id = $1",
-		"%s",chat.GetLang()),
+		"%s", chat.GetLang()),
 		chat.GetGame().GetCatastropheId())
 	if err != nil {
 		loger.LogErr(err)
@@ -789,7 +795,7 @@ func GameLogic(chatId int64, chat *Chat.Chat) {
 	closeCharacteristics := Game.NUMBER_OF_CHARACTERISTICS - 1
 	game := chat.GetGame()
 	for {
-		if game.BunkerCap() != game.NumberOfAlivePlayers() {
+		if game.BunkerCap() < game.NumberOfAlivePlayers() {
 			if closeCharacteristics-(game.NumberOfAlivePlayers()-game.BunkerCap()) > 0 {
 				game.SetGameStage(Game.SELECTING_CHARACTERISTICS)
 			} else {
@@ -803,6 +809,23 @@ func GameLogic(chatId int64, chat *Chat.Chat) {
 				discussion(chat, chatId)
 			}
 		} else {
+			msg:=tgbotapi.NewMessage(chatId,"")
+			text:=""
+			for i := 0; i < chat.GetGame().GetNumberOfPlayers(); i++ {
+				if chat.GetGame().GetPlayers()[i].IsAlive() {
+					text+=", "+chat.GetGame().GetPlayers()[i].GetFullName()
+				}
+			}
+			msg.Text=text[1:]
+			switch chat.GetLang() {
+			case Chat.RU:
+				msg.Text+=""
+			case Chat.EN:
+				msg.Text+=""
+			}
+			_,err=bot.Send(msg)
+			loger.LogErr(err)
+			game.FinishGame()
 			break
 		}
 	}
@@ -824,7 +847,7 @@ func discussion(chat *Chat.Chat, chatId int64) {
 	voting(chat, chatId)
 }
 
-func voting(chat *Chat.Chat, chatId int64) {
+func timeForVoting(chat *Chat.Chat,chatId int64)  {
 	msg := formVotingMsg(chatId, chat)
 	for i := 0; i < chat.GetGame().GetNumberOfPlayers(); i++ {
 		if chat.GetGame().GetPlayers()[i].IsAlive() {
@@ -839,54 +862,67 @@ func voting(chat *Chat.Chat, chatId int64) {
 	case <-timer.C:
 		for i := 0; i < chat.GetGame().GetNumberOfPlayers(); i++ {
 			if chat.GetGame().GetPlayers()[i].IsAlive() {
-				_, err := bot.DeleteMessage(tgbotapi.NewDeleteMessage(int64(chat.GetGame().GetPlayers()[i].GetUser().ID), chat.GetGame().GetPlayers()[i].MsgId()))
-				if err == nil {
-					chat.GetGame().GetPlayers()[i].IncrementAgainstVotes()
-				}
+				_, err := bot.DeleteMessage(tgbotapi.NewDeleteMessage(
+					int64(chat.GetGame().GetPlayers()[i].GetUser().ID),
+					chat.GetGame().GetPlayers()[i].MsgId()))
+				loger.LogErr(err)
 			}
 		}
-		chat.GetGame().Kick()
-		if len(chat.GetGame().PlayersToKick) == 1 {
-			msg.ChatID = chatId
-			chat.GetGame().PlayersToKick[0].Kill()
-			chat.GetGame().SetNumberOfAlivePlayers(chat.GetGame().NumberOfAlivePlayers() - 1)
-			switch chat.GetLang() {
-			case Chat.EN:
-				msg.Text = fmt.Sprintf(Text.KICK_EN, chat.GetGame().PlayersToKick[0].GetFullName())
-			case Chat.RU:
-				msg.Text = fmt.Sprintf(Text.KICK_RU, chat.GetGame().PlayersToKick[0].GetFullName())
-			}
-			msg.ReplyMarkup = nil
-			_, err := bot.Send(msg)
-			loger.LogErr(err)
-			chat.GetGame().PlayersToKick = nil
-		} else {
-			msg.ChatID = chatId
-			for _, val := range chat.GetGame().PlayersToKick {
-				msg.Text += val.GetFullName() + ", "
-			}
-			switch chat.GetLang() {
-			case Chat.RU:
-				msg.Text += Text.MORE_THAN_ONE_RU
-			case Chat.EN:
-				msg.Text += Text.MORE_THAN_ONE_EN
-			}
-			_, err := bot.Send(msg)
-			loger.LogErr(err)
-			timer = time.NewTimer(10 * time.Second)
-			select {
-			case <-timer.C:
-				for i := 0; i < chat.GetGame().GetNumberOfPlayers(); i++ {
-					if chat.GetGame().GetPlayers()[i].IsAlive() {
-						msg.ChatID = int64(chat.GetGame().GetPlayers()[i].GetUser().ID)
-						msgReply, err := bot.Send(msg)
-						loger.LogErr(err)
-						chat.GetGame().GetPlayers()[i].SetMsgId(msgReply.MessageID)
-					}
+	}
+}
+
+func voting(chat *Chat.Chat, chatId int64) {
+	timeForVoting(chat,chatId)
+	msg:=tgbotapi.NewMessage(chatId,"")
+	chat.GetGame().Kick()
+	if len(chat.GetGame().PlayersToKick) == 1 {
+		msg.ChatID = chatId
+		chat.GetGame().PlayersToKick[0].Kill()
+		chat.GetGame().SetNumberOfAlivePlayers(chat.GetGame().NumberOfAlivePlayers() - 1)
+		switch chat.GetLang() {
+		case Chat.EN:
+			msg.Text = fmt.Sprintf(Text.KICK_EN, chat.GetGame().PlayersToKick[0].GetFullName())
+		case Chat.RU:
+			msg.Text = fmt.Sprintf(Text.KICK_RU, chat.GetGame().PlayersToKick[0].GetFullName())
+		}
+		msg.ReplyMarkup = nil
+		_, err := bot.Send(msg)
+		loger.LogErr(err)
+		chat.GetGame().PlayersToKick = nil
+	} else {
+		msg.Text = ""
+		msg.ReplyMarkup = nil
+		msg.ChatID = chatId
+		for _, val := range chat.GetGame().PlayersToKick {
+			msg.Text += val.GetFullName() + ", "
+		}
+		switch chat.GetLang() {
+		case Chat.RU:
+			msg.Text += Text.MORE_THAN_ONE_RU
+		case Chat.EN:
+			msg.Text += Text.MORE_THAN_ONE_EN
+		}
+		_, err := bot.Send(msg)
+		loger.LogErr(err)
+		timer := time.NewTimer(10 * time.Second)
+		select {
+		case <-timer.C:
+			timeForVoting(chat,chatId)
+			chat.GetGame().Kick()
+			for _,val:=range chat.GetGame().PlayersToKick{
+				val.Kill()
+				chat.GetGame().SetNumberOfAlivePlayers(chat.GetGame().NumberOfAlivePlayers() - 1)
+				switch chat.GetLang() {
+				case Chat.EN:
+					msg.Text = fmt.Sprintf(Text.KICK_EN, val.GetFullName())
+				case Chat.RU:
+					msg.Text = fmt.Sprintf(Text.KICK_RU, val.GetFullName())
 				}
+				msg.ReplyMarkup = nil
 				_, err := bot.Send(msg)
 				loger.LogErr(err)
 			}
+			chat.GetGame().PlayersToKick=nil
 		}
 	}
 }
