@@ -78,6 +78,7 @@ func (g *Game) NewGame() error {
 
 	g.gameStage = 1
 	g.numberOfAlivePlayers = g.numberOfPlayers
+	g.bunkerCap = g.numberOfAlivePlayers/2
 	for i := 0; i < g.numberOfPlayers; i++ {
 		g.players[i].GenPlayer()
 	}

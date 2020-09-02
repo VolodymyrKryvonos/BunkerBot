@@ -69,6 +69,9 @@ const (
 	KICK_RU = "Вы решили оставить %s за стенами бункера"
 	KICK_EN = "You decided to leave %s outside the walls of the bunker"
 
+	VOTE_AGAINST_RU= "Выберите кого вы не возьмете с собой в бункер"
+	VOTE_AGAINST_EN= "Choose who you won't take to the bunker"
+
 	MORE_THAN_ONE_RU = "имеют наибольшее количество голосов"
 	MORE_THAN_ONE_EN = "have the largest number of votes"
 )
