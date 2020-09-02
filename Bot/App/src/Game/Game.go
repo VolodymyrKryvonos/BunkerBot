@@ -72,7 +72,8 @@ func (g Game) GetPlayers() []Player {
 }
 
 func (g *Game) NewGame() error {
-	if g.numberOfPlayers < 0 {
+	if g.numberOfPlayers <= 0 {
+		g.gameStage=GAME_IS_OVER
 		return fmt.Errorf("Not enough players. The minimum number of players is 6. ")
 	}
 
